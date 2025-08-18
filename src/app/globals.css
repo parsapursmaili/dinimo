@@ -1,60 +1,75 @@
 @import "tailwindcss";
 @import "tailwindcss/utilities";
+
 /*
-  تعریف متغیرهای CSS برای تم لایت (پیش‌فرض)
-  این رنگ‌ها برای حالت عادی (Light Theme) استفاده می‌شوند.
+  CSS variables for the light theme (default)
 */
 :root {
-  --background: #f7f7f7; /* خاکستری خیلی روشن برای پس‌زمینه */
-  --foreground: #1a1a1a; /* سیاه مایل به خاکستری تیره برای متن */
-  --primary: #007bff; /* آبی تیره برای عناصر اصلی (دکمه‌ها، لینک‌ها) */
-  --accent: #ffb703; /* زرد-نارنجی روشن برای هایلایت و CTA */
-  --secondary: #e9ecef; /* خاکستری روشن برای پس‌زمینه کارت‌ها/بخش‌ها */
+  --background: #f7f7f7;
+  --foreground: #1a1a1a;
+  --primary: #007bff;
+  --accent: #ffb703;
+  --secondary: #e9ecef;
+
+  /* Status colors */
+  --error: #dc2626;
+  --error-background: #fee2e2;
+  --error-border: #fecaca;
+
+  /* Input colors */
+  --input-background: #ffffff;
+  --input-border: #d1d5db;
+  --input-focus-ring: var(--primary);
 }
 
 /*
-  تعریف متغیرهای CSS برای تم دارک
-  این متغیرها وقتی کلاس 'dark-theme' به تگ <body> اضافه شود، فعال می‌شوند.
+  CSS variables for the dark theme
+  A modern gaming color palette
 */
 .dark {
-  --background: #18181b; /* خاکستری تیره شیک برای پس‌زمینه */
-  --foreground: #e5e5e5; /* خاکستری خیلی روشن برای متن */
-  --primary: #007bff; /* همان آبی تیره که در لایت هم قوی و جذاب است */
-  --accent: #fb8500; /* نارنجی پررنگ برای هایلایت و CTA در دارک مود */
-  --secondary: #2a2a2e; /* خاکستری تیره‌تر برای پس‌زمینه کارت‌ها/بخش‌ها */
+  --background: #0a1016; /* Darker gaming charcoal */
+  --foreground: #e0e0e0; /* Softer light gray */
+  --primary: #00b7eb; /* Softer electric blue */
+  --accent: #ff4da6; /* Softer magenta */
+  --secondary: #1a232b;
+
+  /* Status colors for dark theme */
+  --error: #f87171;
+  --error-background: #450a0a;
+  --error-border: #991b1b;
+
+  /* Input colors for dark theme */
+  --input-background: var(--background);
+  --input-border: #374151;
+  --input-focus-ring: var(--primary);
 }
 
-/*
-  تنظیم خودکار تم دارک بر اساس تنظیمات سیستم کاربر
-  اگر کاربر در سیستم خود تم دارک را فعال کرده باشد، این استایل‌ها اعمال می‌شوند.
-  کلاس 'dark-theme' اولویت بالاتری دارد و برای تغییر دستی تم استفاده می‌شود.
-*/
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #18181b;
-    --foreground: #e5e5e5;
-    --primary: #007bff;
-    --accent: #fb8500;
-    --secondary: #2a2a2e;
+    --background: #0a1016;
+    --foreground: #e0e0e0;
+    --primary: #00b7eb;
+    --accent: #ff4da6;
+    --secondary: #1a232b;
   }
 }
 
 /*
-  استایل‌های سراسری برای body و عناصر متنی
-  از متغیرهای CSS برای رنگ‌ها و از متغیر فونت برای نوع فونت استفاده می‌شود.
+  Global styles for body and text elements
 */
 body {
-  background: var(--background); /* اعمال رنگ پس‌زمینه */
-  color: var(--foreground); /* اعمال رنگ متن */
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-vazir), -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; /* استفاده از فونت Vazir برای متن اصلی */
-  font-weight: 400; /* وزن عادی برای متن بدنه */
-  transition: background-color 0.3s ease, color 0.3s ease; /* انتقال نرم برای تغییر تم */
+    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-weight: 400;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  direction: rtl; /* Ensure RTL */
+  text-align: right; /* Right-align text */
 }
 
 /*
-  استایل‌ها برای تیترها (H1 تا H6)
-  تیترها از همان فونت Vazir اما با وزن بولد استفاده می‌کنند.
+  Styles for headings
 */
 h1,
 h2,
@@ -63,61 +78,75 @@ h4,
 h5,
 h6 {
   font-family: var(--font-vazir), -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; /* استفاده از فونت Vazir برای تیترها */
-  font-weight: 700; /* وزن بولد برای تیترها */
-  color: var(--foreground); /* رنگ تیترها */
+    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-weight: 700;
+  color: var(--foreground);
 }
 
 /*
-  مثال‌هایی از نحوه استفاده از متغیرهای رنگی در کامپوننت‌ها (با Tailwind یا CSS عادی)
-  شما می‌توانید این‌ها را به کلاس‌های Tailwind خود اضافه کنید یا مستقیماً در CSS استفاده کنید.
+  Component-specific styles
 */
 .card {
   background: var(--secondary);
   color: var(--foreground);
-  border-radius: 0.5rem; /* گوشه‌های گرد برای زیبایی */
+  border-radius: 0.5rem;
   padding: 1rem;
 }
 
 .button-primary {
   background: var(--primary);
-  color: var(--background); /* رنگ متن دکمه معکوس رنگ پس‌زمینه برای کنتراست */
+  color: var(--background);
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .button-primary:hover {
-  filter: brightness(1.1); /* کمی روشن‌تر شدن با هاور */
+  filter: brightness(1.1);
+  transform: translateY(-2px);
 }
 
 .button-accent {
   background: var(--accent);
-  color: var(--background); /* رنگ متن دکمه معکوس رنگ پس‌زمینه برای کنتراست */
+  color: var(--background);
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .button-accent:hover {
   filter: brightness(1.1);
+  transform: translateY(-2px);
 }
 
 a {
-  color: var(--primary); /* رنگ لینک‌ها */
+  color: var(--primary);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color 0.3s ease, transform 0.3s ease;
 }
 
 a:hover {
-  text-decoration: underline;
+  color: var(--accent);
+  transform: translateX(2px); /* Subtle shift for modern feel */
 }
 
-/* استایل‌های اضافی برای بهبود تجربه کاربری */
+/* Additional RTL support */
+ul,
+ol {
+  padding-right: 1.5rem;
+  padding-left: 0;
+  text-align: right;
+}
+
+nav ul {
+  direction: rtl;
+}
+
+/* Enhance user experience */
 .antialiased {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

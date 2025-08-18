@@ -9,7 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "framer-motion": "^12.23.12",
     "jalali-moment": "^3.3.11",
+    "jose": "^6.0.12",
+    "lucide-react": "^0.540.0",
     "mime-types": "^3.0.1",
     "mysql2": "^3.14.3",
     "next": "15.4.6",
