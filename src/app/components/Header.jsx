@@ -12,7 +12,7 @@ export default function Header() {
   const navItems = [
     { name: "خانه", href: "/" },
     { name: "بازی‌ها", href: "/games" },
-    { name: "اخبار", href: "/news" },
+    { name: "پنل ادمین", href: "/admin" },
     { name: "فروشگاه", href: "/store" },
     { name: "انجمن", href: "/community" },
   ];
