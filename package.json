@@ -9,7 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tiptap/core": "^3.2.0",
+    "@tiptap/extension-image": "^3.2.0",
+    "@tiptap/extension-link": "^3.2.0",
+    "@tiptap/extension-text-align": "^3.2.0",
+    "@tiptap/react": "^3.2.0",
+    "@tiptap/starter-kit": "^3.2.0",
     "framer-motion": "^12.23.12",
+    "html-react-parser": "^5.2.6",
     "jalali-moment": "^3.3.11",
     "jose": "^6.0.12",
     "lucide-react": "^0.540.0",

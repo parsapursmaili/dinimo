@@ -1,5 +1,3 @@
-// src/app/api/getimg/[...path]/route.js
-
 import { NextResponse } from "next/server";
 import { join } from "path";
 import { stat, readFile } from "fs/promises";
@@ -8,7 +6,7 @@ import mime from "mime-types";
 // مسیر اصلی پوشه آپلودها
 const UPLOADS_DIR = join(process.cwd(), "public", "uploads");
 
-// تابع کمکی برای خواندن و ارسال فایل
+// این تابع کمکی برای خواندن و ارسال فایل، صحیح است و نیازی به تغییر ندارد.
 async function serveImage(filePath, request) {
   try {
     const stats = await stat(filePath);
@@ -32,24 +30,26 @@ async function serveImage(filePath, request) {
     });
   } catch (error) {
     if (error.code === "ENOENT") {
-      return null;
+      return null; // به این معناست که فایل یافت نشد
     }
-    throw error;
+    throw error; // سایر خطاها را به بیرون پرتاب می‌کند
   }
 }
 
-// راه حل جایگزین
-export async function GET(request) {
+// ۱. رفع مشکل اصلی: استفاده از پارامتر `params` که خود Next.js فراهم می‌کند
+export async function GET(request, { params }) {
   try {
-    const { pathname } = new URL(request.url);
-    const pathParts = pathname.split("/").filter((part) => part !== "");
+    // `params.path` یک آرایه از بخش‌های مسیر است.
+    // مثال: ['2025', '08', '%D9%84%D9%88...webp']
+    const imagePathArray = params.path;
 
-    // مسیر مورد نظر را از URL استخراج می کنیم
-    const startOfPath = pathParts.indexOf("getimg") + 1;
-    const imagePathArray = pathParts.slice(startOfPath);
+    // ۲. دی‌کُد کردن هر بخش از مسیر برای پشتیبانی از نام‌های فارسی
+    const decodedImagePathArray = imagePathArray.map((part) =>
+      decodeURIComponent(part)
+    );
 
-    // ساخت مسیر کامل به فایل
-    const fullPath = join(UPLOADS_DIR, ...imagePathArray);
+    // ۳. ساخت مسیر کامل فایل روی دیسک
+    const fullPath = join(UPLOADS_DIR, ...decodedImagePathArray);
 
     const response = await serveImage(fullPath, request);
 
@@ -57,6 +57,7 @@ export async function GET(request) {
       return response;
     }
 
+    // اگر `serveImage` مقدار null برگرداند، یعنی فایل یافت نشده است
     return NextResponse.json(
       { error: "تصویر درخواست شده یافت نشد." },
       { status: 404 }
