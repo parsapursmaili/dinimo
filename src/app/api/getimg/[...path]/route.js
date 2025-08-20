@@ -1,12 +1,34 @@
+// api/getimg/[...path]/route.js
+
 import { NextResponse } from "next/server";
 import { join } from "path";
-import { stat, readFile } from "fs/promises";
+import { stat, readFile, writeFile } from "fs/promises";
+import { existsSync, mkdirSync } from "fs";
 import mime from "mime-types";
+import sharp from "sharp";
 
-// مسیر اصلی پوشه آپلودها
+// --- ثابت‌های پیکربندی ---
+
 const UPLOADS_DIR = join(process.cwd(), "public", "uploads");
+const CACHE_DIR = join(process.cwd(), "public", "uploads", "cache");
+const MEDIUM_WIDTH = 700;
+const QUALITY = 70;
 
-// این تابع کمکی برای خواندن و ارسال فایل، صحیح است و نیازی به تغییر ندارد.
+// --- راه‌اندازی اولیه ---
+// اطمینان از وجود پوشه کش در اولین اجرا
+if (!existsSync(CACHE_DIR)) {
+  console.log("Creating cache directory:", CACHE_DIR);
+  mkdirSync(CACHE_DIR, { recursive: true });
+}
+
+// --- توابع کمکی ---
+
+/**
+ * یک فایل تصویر را با هدرهای کشینگ قوی (ETag) به کلاینت ارسال می‌کند.
+ * @param {string} filePath - مسیر کامل فایل تصویر.
+ * @param {Request} request - آبجکت درخواست ورودی.
+ * @returns {Promise<Response|null>} آبجکت Response یا null در صورت عدم وجود فایل.
+ */
 async function serveImage(filePath, request) {
   try {
     const stats = await stat(filePath);
@@ -14,7 +36,7 @@ async function serveImage(filePath, request) {
     const ifNoneMatch = request.headers.get("if-none-match");
 
     if (ifNoneMatch === etag) {
-      return new Response(null, { status: 304 });
+      return new Response(null, { status: 304 }); // Not Modified
     }
 
     const imageBuffer = await readFile(filePath);
@@ -23,49 +45,94 @@ async function serveImage(filePath, request) {
     return new Response(imageBuffer, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "public, max-age=31536000, immutable", // کش برای یک سال
         ETag: etag,
       },
       status: 200,
     });
   } catch (error) {
     if (error.code === "ENOENT") {
-      return null; // به این معناست که فایل یافت نشد
+      return null; // فایل وجود ندارد، اجازه بده منطق اصلی ادامه یابد
     }
-    throw error; // سایر خطاها را به بیرون پرتاب می‌کند
+    throw error; // خطای دیگر را پرتاب کن
   }
 }
 
-// ۱. رفع مشکل اصلی: استفاده از پارامتر `params` که خود Next.js فراهم می‌کند
+// --- کنترلر اصلی API ---
+
 export async function GET(request, { params }) {
   try {
-    // `params.path` یک آرایه از بخش‌های مسیر است.
-    // مثال: ['2025', '08', '%D9%84%D9%88...webp']
-    const imagePathArray = params.path;
+    // ۱. پارس کردن ورودی‌ها
+    const url = new URL(request.url);
+    const sizeTier = url.searchParams.get("size"); // 'm' or null
 
-    // ۲. دی‌کُد کردن هر بخش از مسیر برای پشتیبانی از نام‌های فارسی
-    const decodedImagePathArray = imagePathArray.map((part) =>
-      decodeURIComponent(part)
-    );
+    // ۲. ساخت مسیرهای فایل اصلی و فایل‌های کش
+    const imagePathArray = params.path.map(decodeURIComponent);
+    const originalFilename = imagePathArray[imagePathArray.length - 1];
+    const originalPath = join(UPLOADS_DIR, ...imagePathArray);
 
-    // ۳. ساخت مسیر کامل فایل روی دیسک
-    const fullPath = join(UPLOADS_DIR, ...decodedImagePathArray);
+    const baseName = originalFilename.split(".").slice(0, -1).join(".");
 
-    const response = await serveImage(fullPath, request);
+    // نام‌گذاری جدید و استاندارد برای فایل‌های کش
+    const cachedMediumFilename = `${baseName}-m-q${QUALITY}.webp`;
+    const cachedOrigFilename = `${baseName}-orig-q${QUALITY}.webp`;
 
-    if (response) {
-      return response;
+    const cachedMediumPath = join(CACHE_DIR, cachedMediumFilename);
+    const cachedOrigPath = join(CACHE_DIR, cachedOrigFilename);
+
+    // تعیین فایل مورد نظر بر اساس درخواست
+    const requestedPath = sizeTier === "m" ? cachedMediumPath : cachedOrigPath;
+
+    // ۳. تلاش برای ارسال فایل از کش
+    const cachedImageResponse = await serveImage(requestedPath, request);
+    if (cachedImageResponse) {
+      return cachedImageResponse;
     }
 
-    // اگر `serveImage` مقدار null برگرداند، یعنی فایل یافت نشده است
-    return NextResponse.json(
-      { error: "تصویر درخواست شده یافت نشد." },
-      { status: 404 }
-    );
+    // ۴. اگر کش وجود نداشت: هر دو نسخه را به صورت موازی بساز
+    const originalImageBuffer = await readFile(originalPath);
+
+    // استفاده از Promise.all برای اجرای همزمان هر دو عملیات بهینه‌سازی
+    const [optimizedOrigBuffer, optimizedMediumBuffer] = await Promise.all([
+      // نسخه اصلی: فقط تبدیل فرمت و کیفیت
+      sharp(originalImageBuffer).webp({ quality: QUALITY }).toBuffer(),
+
+      // نسخه متوسط: تغییر اندازه، تبدیل فرمت و کیفیت
+      sharp(originalImageBuffer)
+        .resize({ width: MEDIUM_WIDTH })
+        .webp({ quality: QUALITY })
+        .toBuffer(),
+    ]);
+
+    // ذخیره هر دو نسخه در پوشه کش
+    await Promise.all([
+      writeFile(cachedOrigPath, optimizedOrigBuffer),
+      writeFile(cachedMediumPath, optimizedMediumBuffer),
+    ]);
+
+    // ۵. ارسال نسخه درخواست شده به کاربر
+    const bufferToSend =
+      sizeTier === "m" ? optimizedMediumBuffer : optimizedOrigBuffer;
+
+    return new Response(bufferToSend, {
+      headers: {
+        "Content-Type": "image/webp",
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+      status: 200,
+    });
   } catch (error) {
-    console.error("خطا در دسترسی به تصویر:", error);
+    console.error("Image processing API error:", error);
+
+    if (error.code === "ENOENT") {
+      return NextResponse.json(
+        { error: "Original image not found." },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "خطای سرور در دسترسی به تصویر." },
+      { error: "Internal server error during image processing." },
       { status: 500 }
     );
   }
