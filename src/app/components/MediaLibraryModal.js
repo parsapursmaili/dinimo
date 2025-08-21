@@ -120,7 +120,7 @@ export default function MediaLibraryModal({
                   </button>
                   <Image
                     loader={myImageLoader}
-                    src={`${path}?size=s`}
+                    src={`${path}?size=m`}
                     alt={path.split("/").pop() || ""}
                     fill
                     sizes="(max-width: 640px) 25vw, 12vw"
