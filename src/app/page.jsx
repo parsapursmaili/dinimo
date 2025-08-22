@@ -14,6 +14,8 @@ export default function TestImagePage() {
         fontFamily: "sans-serif",
       }}
     >
+      <span className="text-primary">سلام</span>
+
       <h1 style={{ textAlign: "center", marginBottom: "30px" }}>
         تست سیستم بهینه‌سازی تصویر جدید
       </h1>

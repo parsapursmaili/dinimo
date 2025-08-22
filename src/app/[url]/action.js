@@ -1,15 +1,14 @@
+"use server";
+
 import { db } from "@/app/lib/db/mysql";
 import { unstable_noStore as noStore } from "next/cache";
+import { revalidatePath } from "next/cache";
 
 /**
  * دریافت اطلاعات یک پست، دسته‌بندی‌ها و تگ‌های آن بر اساس URL
- * @param {string} url - آدرس یکتای پست
- * @returns {Promise<object|null>} - آبجکت پست یا null در صورت عدم وجود
  */
 export async function getPostByUrl(url) {
-  // از کش شدن این کوئری جلوگیری می‌کند تا تعداد بازدید همیشه آپدیت شود
-  noStore();
-
+  noStore(); // جلوگیری از کش شدن برای آپدیت بازدید
   try {
     const query = `
       SELECT 
@@ -32,24 +31,100 @@ export async function getPostByUrl(url) {
       WHERE p.url = ? AND p.status = 'publish'
       LIMIT 1
     `;
-
-    // MariaDB/MySQL2 pool.query returns an array, so we destructure it
     const [rows] = await db.query(query, [url]);
 
-    // اگر پستی پیدا نشد، null برگردان
     if (!rows || rows.length === 0) {
       return null;
     }
 
     const post = rows[0];
-
-    // افزایش تعداد بازدید پست
+    // افزایش تعداد بازدید
     await db.query("UPDATE posts SET view = view + 1 WHERE id = ?", [post.id]);
-
-    // برگرداندن پست به همراه تعداد بازدید جدید
     return { ...post, view: post.view + 1 };
   } catch (error) {
-    console.error("Database Error:", error);
+    console.error("Database Error (getPostByUrl):", error);
     throw new Error("Failed to fetch post.");
+  }
+}
+
+/**
+ * دریافت کامنت‌های تایید شده یک پست به صورت تودرتو
+ */
+export async function getComments(postId) {
+  noStore();
+  try {
+    const query = `
+      SELECT id, parent_id, author_name, created_at, content
+      FROM comments
+      WHERE post_id = ? AND status = 'approved'
+      ORDER BY created_at DESC
+    `;
+    const [comments] = await db.query(query, [postId]);
+
+    // ساختار تودرتو برای پاسخ‌ها
+    const commentsById = {};
+    comments.forEach((comment) => {
+      commentsById[comment.id] = { ...comment, replies: [] };
+    });
+
+    const nestedComments = [];
+    comments.forEach((comment) => {
+      if (comment.parent_id && commentsById[comment.parent_id]) {
+        // جلوگیری از نمایش کامنت‌های تودرتو در سطح اصلی
+        commentsById[comment.parent_id].replies.unshift(
+          commentsById[comment.id]
+        );
+      } else {
+        nestedComments.push(commentsById[comment.id]);
+      }
+    });
+
+    return nestedComments;
+  } catch (error) {
+    console.error("Database Error (getComments):", error);
+    throw new Error("Failed to fetch comments.");
+  }
+}
+
+/**
+ * ثبت یک کامنت جدید (Server Action)
+ */
+export async function addComment(previousState, formData) {
+  const { postId, parentId, author_name, content, author_email, postUrl } =
+    Object.fromEntries(formData);
+
+  if (!author_name.trim() || !content.trim()) {
+    return {
+      success: false,
+      message: "نام و متن دیدگاه نمی‌توانند خالی باشند.",
+    };
+  }
+
+  try {
+    const query = `
+      INSERT INTO comments (post_id, parent_id, author_name, author_email, content, created_at, status)
+      VALUES (?, ?, ?, ?, ?, NOW(), 'pending')
+    `;
+    await db.query(query, [
+      postId,
+      parentId || 0,
+      author_name,
+      author_email,
+      content,
+    ]);
+
+    // کش صفحه را پاک می‌کنیم تا کامنت جدید (پس از تایید ادمین) نمایش داده شود
+    revalidatePath(`/blog/${postUrl}`);
+
+    return {
+      success: true,
+      message: "دیدگاه شما ثبت شد و پس از تایید نمایش داده خواهد شد.",
+    };
+  } catch (error) {
+    console.error("Database Error (addComment):", error);
+    return {
+      success: false,
+      message: "خطایی در ثبت دیدگاه رخ داد. لطفا دوباره تلاش کنید.",
+    };
   }
 }

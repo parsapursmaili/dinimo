@@ -479,7 +479,7 @@ export default function PostManagementClient() {
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold">مدیریت پست‌ها</h1>
         <Link
-          href="/admin/posts/new"
+          href="/admin/posts/edit/0"
           className="button-primary flex items-center gap-2"
         >
           <PlusCircle size={20} /> افزودن پست جدید
@@ -557,7 +557,7 @@ export default function PostManagementClient() {
                       </td>
                       <td className="px-6 py-4 font-semibold">
                         <Link
-                          href={`/admin/posts/edit/${post.id}`}
+                          href={`/admin//posts/edit/${post.id}`}
                           className="hover:text-[var(--accent)] transition-colors"
                         >
                           {post.title}
@@ -580,7 +580,7 @@ export default function PostManagementClient() {
                           </button>
                           <span>|</span>
                           <a
-                            href={`/posts/${post.url}`}
+                            href={`/${post.url}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:underline flex items-center gap-1"

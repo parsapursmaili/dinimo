@@ -1,9 +1,7 @@
+@config "./tailwind.config.js";
 @import "tailwindcss";
-@import "tailwindcss/utilities";
+/* رنگ‌های سفارشی که کلاس می‌سازن مثل text-primary, bg-primary */
 
-/*
-  Cybernetic Neon Color Palette (Enhanced)
-*/
 :root {
   --background: #f0f0f5;
   --foreground: #1c1c20;
@@ -76,6 +74,11 @@
 }
 
 /*
+
+
+
+
+
   Global styles
 */
 body {

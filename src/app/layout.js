@@ -1,10 +1,9 @@
 // app/layout.js
-
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { vazir } from "./font.js";
 import Header from "@/app/components/Header";
-import { ThemeProvider } from "@/app/components/theme-provider"; // [!code focus]
+import { ThemeProvider } from "@/app/components/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,25 +22,22 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    // زبان به فارسی تغییر یافت و برای جلوگیری از خطای Hydration از suppressHydrationWarning استفاده شد
     <html
-      className={vazir.variable}
+      className={`${vazir.variable} dark`} // 🔥 پیش‌فرض دارک روی SSR
       lang="fa"
       dir="rtl"
-      suppressHydrationWarning // [!code focus]
+      suppressHydrationWarning
     >
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* ThemeProvider کل برنامه را در بر می‌گیرد */}
-        <ThemeProvider // [!code focus]
-          attribute="class" // [!code focus]
-          defaultTheme="system" // [!code focus]
-          enableSystem // [!code focus]
-          disableTransitionOnChange // [!code focus]
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark" // همیشه پیش‌فرض دارک
+          enableSystem={false} // به تنظیمات سیستم کاری نداره
+          disableTransitionOnChange
         >
           <Header />
-          {/* افزودن یک padding-top به main تا محتوا زیر هدر نرود */}
           <main className="pt-24">{children}</main>
         </ThemeProvider>
       </body>
