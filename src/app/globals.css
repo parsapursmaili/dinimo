@@ -2,60 +2,81 @@
 @import "tailwindcss/utilities";
 
 /*
-  CSS variables for the light theme (default)
+  Cybernetic Neon Color Palette (Enhanced)
 */
 :root {
-  --background: #f7f7f7;
-  --foreground: #1a1a1a;
+  --background: #f0f0f5;
+  --foreground: #1c1c20;
   --primary: #007bff;
-  --accent: #ffb703;
-  --secondary: #e9ecef;
+  --accent: #ff4500;
+  --secondary: #e0e0e5;
 
   /* Status colors */
-  --error: #dc2626;
-  --error-background: #fee2e2;
-  --error-border: #fecaca;
+  --error: #e53935;
+  --error-background: #ffebee;
+  --error-border: #ef9a9a;
 
   /* Input colors */
   --input-background: #ffffff;
   --input-border: #d1d5db;
   --input-focus-ring: var(--primary);
+  --input-placeholder: #6b7280;
+
+  /* Selection & Highlight Colors */
+  --selection-background: var(--primary);
+  --selection-foreground: var(--background);
+  --highlight-background: #fff899;
+  --highlight-foreground: #1c1c20;
+
+  /* Font Sizes and Line Heights */
+  --font-size-base: 1.125rem;
+  --line-height-base: 1.75;
+  --font-size-h1: 2.5rem;
+  --font-size-h2: 2rem;
+  --font-size-h3: 1.75rem;
+  --font-size-h4: 1.5rem;
+  --font-size-h5: 1.25rem;
+  --font-size-h6: 1.125rem;
+  --line-height-headings: 1.2;
 }
 
-/*
-  CSS variables for the dark theme
-  A modern gaming color palette
-*/
 .dark {
-  --background: #0a1016; /* Darker gaming charcoal */
-  --foreground: #e0e0e0; /* Softer light gray */
-  --primary: #00b7eb; /* Softer electric blue */
-  --accent: #ff4da6; /* Softer magenta */
-  --secondary: #1a232b;
+  --background: #0a0a1a;
+  --foreground: #e0e0f0;
+  --primary: #00ffff;
+  --accent: #ff4da6;
+  --secondary: #1a1a2b;
 
   /* Status colors for dark theme */
-  --error: #f87171;
+  --error: #ff5757;
   --error-background: #450a0a;
   --error-border: #991b1b;
 
   /* Input colors for dark theme */
   --input-background: var(--background);
-  --input-border: #374151;
+  --input-border: #33334d;
   --input-focus-ring: var(--primary);
+  --input-placeholder: #6b7280;
+
+  /* Selection & Highlight Colors for dark theme */
+  --selection-background: var(--primary);
+  --selection-foreground: var(--background);
+  --highlight-background: #5a5a22;
+  --highlight-foreground: #fff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a1016;
-    --foreground: #e0e0e0;
-    --primary: #00b7eb;
+    --background: #0a0a1a;
+    --foreground: #e0e0f0;
+    --primary: #00ffff;
     --accent: #ff4da6;
-    --secondary: #1a232b;
+    --secondary: #1a1a2b;
   }
 }
 
 /*
-  Global styles for body and text elements
+  Global styles
 */
 body {
   background: var(--background);
@@ -64,13 +85,18 @@ body {
     Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   font-weight: 400;
   transition: background-color 0.3s ease, color 0.3s ease;
-  direction: rtl; /* Ensure RTL */
-  text-align: right; /* Right-align text */
+  direction: rtl;
+  text-align: right;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
 }
 
-/*
-  Styles for headings
-*/
+::selection {
+  background: var(--selection-background);
+  color: var(--selection-foreground);
+}
+
+/* Headings */
 h1,
 h2,
 h3,
@@ -81,16 +107,56 @@ h6 {
     Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   font-weight: 700;
   color: var(--foreground);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  line-height: var(--line-height-headings);
 }
 
-/*
-  Component-specific styles
-*/
+h1 {
+  font-size: var(--font-size-h1);
+  margin-bottom: 0.75em;
+}
+h2 {
+  font-size: var(--font-size-h2);
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+h3 {
+  font-size: var(--font-size-h3);
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+h4 {
+  font-size: var(--font-size-h4);
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+h5 {
+  font-size: var(--font-size-h5);
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+h6 {
+  font-size: var(--font-size-h6);
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+/* Highlight/Mark */
+mark {
+  background: var(--highlight-background);
+  color: var(--highlight-foreground);
+  padding: 0 0.25rem;
+  border-radius: 0.2rem;
+}
+
+/* Components */
 .card {
   background: var(--secondary);
   color: var(--foreground);
   border-radius: 0.5rem;
   padding: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .button-primary {
@@ -101,6 +167,7 @@ h6 {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
+  outline: none;
 }
 
 .button-primary:hover {
@@ -116,6 +183,7 @@ h6 {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
+  outline: none;
 }
 
 .button-accent:hover {
@@ -131,10 +199,61 @@ a {
 
 a:hover {
   color: var(--accent);
-  transform: translateX(2px); /* Subtle shift for modern feel */
+  transform: translateX(2px);
 }
 
-/* Additional RTL support */
+/* New - Form Styles */
+input,
+textarea,
+select {
+  background: var(--input-background);
+  color: var(--foreground);
+  border: 1px solid var(--input-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--input-focus-ring);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.25);
+}
+
+::placeholder {
+  color: var(--input-placeholder);
+  opacity: 1;
+}
+
+/* New - Table Styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+th,
+td {
+  padding: 0.75rem;
+  border: 1px solid var(--secondary);
+  text-align: right;
+}
+
+thead th {
+  background: var(--primary);
+  color: var(--background);
+  font-weight: 600;
+}
+
+tbody tr:nth-child(even) {
+  background: var(--secondary);
+}
+
+/* RTL support */
 ul,
 ol {
   padding-right: 1.5rem;
@@ -146,7 +265,7 @@ nav ul {
   direction: rtl;
 }
 
-/* Enhance user experience */
+/* Enhanced user experience */
 .antialiased {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

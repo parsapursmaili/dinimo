@@ -1,0 +1,120 @@
+import Image from "next/image";
+import { notFound } from "next/navigation";
+import { getPostByUrl } from "./action";
+import myImageLoader from "@/app/components/image-loader";
+import ArticleRenderer from "@/app/components/ArticleRenderer";
+import { CalendarDays, Eye, Tags } from "lucide-react";
+
+// Dynamic metadata for SEO
+export async function generateMetadata({ params }) {
+  const post = await getPostByUrl(params.url);
+  if (!post) return { title: "پست یافت نشد" };
+  return { title: post.title, description: post.description };
+}
+
+// Main page component
+export default async function SinglePostPage({ params }) {
+  const post = await getPostByUrl(params.url);
+  if (!post) notFound();
+
+  const postDate = new Date(post.date).toLocaleDateString("fa-IR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const categories = post.categories
+    ? post.categories.split(",").map((c) => c.trim())
+    : [];
+
+  return (
+    <div className="relative overflow-hidden min-h-screen">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background/90 to-primary/10 animate-gradient-x z-0" />
+      <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary/20 rounded-full blur-3xl opacity-40 animate-pulse-slow" />
+      <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-accent/20 rounded-full blur-3xl opacity-30 animate-pulse-slower" />
+
+      <div className="relative z-10 py-12 md:py-20">
+        <article className="max-w-4xl mx-auto px-4 md:px-8 lg:px-12 rounded-3xl bg-secondary/40 backdrop-blur-2xl border border-secondary/50 shadow-[0_0_30px_rgba(0,255,255,0.15)]">
+          {/* Post header */}
+          <header className="flex flex-col items-center text-center py-12">
+            {categories.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-3 mb-6">
+                {categories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="text-xs font-semibold uppercase tracking-wider bg-accent/10 text-accent px-4 py-1.5 rounded-full border border-accent/30 shadow-sm transition-all duration-300 hover:bg-accent/30 hover:shadow-[0_0_8px_var(--accent)]"
+                  >
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <h1 className="text-4xl md:text-5xl xl:text-6xl font-extrabold text-foreground leading-tight mb-6 drop-shadow-[0_0_12px_rgba(0,255,255,0.25)]">
+              {post.title}
+            </h1>
+
+            <p className="text-lg md:text-xl text-foreground/70 leading-relaxed max-w-2xl mx-auto">
+              {post.description}
+            </p>
+
+            {/* Metadata */}
+            <div className="mt-10 flex flex-wrap justify-center gap-x-10 gap-y-4 text-foreground/80">
+              <div className="flex items-center gap-2 hover:text-primary transition-colors">
+                <CalendarDays className="w-5 h-5 text-primary" />
+                <span className="font-medium text-sm">{postDate}</span>
+              </div>
+              <div className="flex items-center gap-2 hover:text-accent transition-colors">
+                <Eye className="w-5 h-5 text-accent" />
+                <span className="font-medium text-sm">
+                  {post.view.toLocaleString("fa-IR")} بازدید
+                </span>
+              </div>
+            </div>
+          </header>
+
+          {/* Featured image with glass effect */}
+          <div className="w-full aspect-video relative rounded-2xl overflow-hidden border border-primary/30 shadow-[0_0_25px_rgba(0,255,255,0.25)] backdrop-blur-xl bg-primary/5 transform transition-transform duration-500 hover:scale-[1.02] mb-16">
+            <Image
+              loader={myImageLoader}
+              src={post.thumbnail || "/placeholder.jpg"}
+              alt={post.title}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 90vw"
+              priority
+            />
+          </div>
+
+          {/* Article content */}
+          <main className="max-w-3xl mx-auto prose prose-lg dark:prose-invert leading-relaxed">
+            <ArticleRenderer content={post.content} />
+          </main>
+
+          <hr className="border-secondary/40 my-16" />
+
+          {/* Tags */}
+          {post.tags && (
+            <footer className="max-w-3xl mx-auto pb-12">
+              <div className="flex flex-wrap items-center gap-4">
+                <Tags className="w-6 h-6 text-accent" />
+                <h3 className="font-semibold text-lg text-foreground/90">
+                  تگ‌های مرتبط:
+                </h3>
+                {post.tags.split(",").map((tag) => (
+                  <span
+                    key={tag.trim()}
+                    className="bg-secondary/60 text-foreground/90 px-4 py-2 rounded-full text-sm font-medium border border-secondary/80 transition-all duration-300 hover:bg-secondary/80 hover:text-primary hover:shadow-[0_0_10px_var(--primary)] cursor-pointer"
+                  >
+                    {tag.trim()}
+                  </span>
+                ))}
+              </div>
+            </footer>
+          )}
+        </article>
+      </div>
+    </div>
+  );
+}
