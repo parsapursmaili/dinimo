@@ -47,9 +47,6 @@ export async function getPostByUrl(url) {
   }
 }
 
-/**
- * دریافت کامنت‌های تایید شده یک پست به صورت تودرتو
- */
 export async function getComments(postId) {
   noStore();
   try {
@@ -57,29 +54,33 @@ export async function getComments(postId) {
       SELECT id, parent_id, author_name, created_at, content
       FROM comments
       WHERE post_id = ? AND status = 'approved'
-      ORDER BY created_at DESC
-    `;
+      ORDER BY created_at ASC
+    `; // مرتب‌سازی بر اساس صعودی برای ساختاردهی صحیح
     const [comments] = await db.query(query, [postId]);
 
-    // ساختار تودرتو برای پاسخ‌ها
+    if (!comments || comments.length === 0) {
+      return [];
+    }
+
     const commentsById = {};
+    // ابتدا همه کامنت‌ها را در یک نقشه (Map) قرار می‌دهیم و یک آرایه خالی برای پاسخ‌ها ایجاد می‌کنیم
     comments.forEach((comment) => {
       commentsById[comment.id] = { ...comment, replies: [] };
     });
 
     const nestedComments = [];
+    // سپس، هر کامنت را به والد مربوطه‌اش متصل می‌کنیم
     comments.forEach((comment) => {
       if (comment.parent_id && commentsById[comment.parent_id]) {
-        // جلوگیری از نمایش کامنت‌های تودرتو در سطح اصلی
-        commentsById[comment.parent_id].replies.unshift(
-          commentsById[comment.id]
-        );
+        commentsById[comment.parent_id].replies.push(commentsById[comment.id]);
       } else {
+        // اگر کامنت والد نداشت (parent_id = 0)، آن را به عنوان کامنت ریشه در نظر می‌گیریم
         nestedComments.push(commentsById[comment.id]);
       }
     });
 
-    return nestedComments;
+    // برای نمایش کامنت‌های جدیدتر در بالا، لیست نهایی را معکوس می‌کنیم
+    return nestedComments.reverse();
   } catch (error) {
     console.error("Database Error (getComments):", error);
     throw new Error("Failed to fetch comments.");

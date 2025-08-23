@@ -43,7 +43,7 @@ function Comment({ comment, postInfo, parentAuthorName }) {
                 {comment.author_name}
               </span>
             </div>
-            <span className="text-xs font-mono text-foreground/60 self-end sm:self-center">
+            <span className="text-xs  text-foreground/60 self-end sm:self-center">
               {commentDate}
             </span>
           </div>
