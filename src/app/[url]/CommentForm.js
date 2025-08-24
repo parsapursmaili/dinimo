@@ -68,7 +68,7 @@ export default function CommentForm({
           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
           <input
             type="text"
-            name="author_name"
+            name="author"
             placeholder="نام شما (اجباری)"
             required
             className="w-full bg-background/80 border-2 border-secondary/80 rounded-lg py-2.5 pl-10 pr-3 text-sm text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"

@@ -8,13 +8,13 @@ import { revalidatePath } from "next/cache";
  * اصلاح شده: اگر وضعیت 'spam' باشد، دیدگاه‌های 'trash' را نیز شامل می‌شود
  */
 export async function fetchComments(status) {
-  const validStatuses = ["approved", "pending", "spam"];
+  const validStatuses = ["publish", "pending", "spam"];
   let finalStatus = validStatuses.includes(status) ? status : "spam";
 
   let query = `
     SELECT c.*, p.title as post_title, p.url as post_url
     FROM comments c LEFT JOIN posts p ON c.post_id = p.id
-    WHERE c.status = ? ORDER BY c.created_at DESC
+    WHERE c.status = ? ORDER BY c.date DESC
   `;
   let params = [finalStatus];
 
@@ -23,7 +23,7 @@ export async function fetchComments(status) {
     query = `
       SELECT c.*, p.title as post_title, p.url as post_url
       FROM comments c LEFT JOIN posts p ON c.post_id = p.id
-      WHERE c.status IN (?, ?) ORDER BY c.created_at DESC
+      WHERE c.status IN (?, ?) ORDER BY c.date DESC
     `;
     params = ["spam", "trash"];
   }

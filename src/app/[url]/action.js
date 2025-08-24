@@ -51,10 +51,10 @@ export async function getComments(postId) {
   noStore();
   try {
     const query = `
-      SELECT id, parent_id, author_name, created_at, content
+      SELECT id, parent_id, author, date, content
       FROM comments
-      WHERE post_id = ? AND status = 'approved'
-      ORDER BY created_at ASC
+      WHERE post_id = ? AND status = 'publish'
+      ORDER BY date ASC
     `; // مرتب‌سازی بر اساس صعودی برای ساختاردهی صحیح
     const [comments] = await db.query(query, [postId]);
 
@@ -91,10 +91,10 @@ export async function getComments(postId) {
  * ثبت یک کامنت جدید (Server Action)
  */
 export async function addComment(previousState, formData) {
-  const { postId, parentId, author_name, content, author_email, postUrl } =
+  const { postId, parentId, author, content, author_email, postUrl } =
     Object.fromEntries(formData);
 
-  if (!author_name.trim() || !content.trim()) {
+  if (!author.trim() || !content.trim()) {
     return {
       success: false,
       message: "نام و متن دیدگاه نمی‌توانند خالی باشند.",
@@ -103,13 +103,13 @@ export async function addComment(previousState, formData) {
 
   try {
     const query = `
-      INSERT INTO comments (post_id, parent_id, author_name, author_email, content, created_at, status)
+      INSERT INTO comments (post_id, parent_id, author, author_email, content, date, status)
       VALUES (?, ?, ?, ?, ?, NOW(), 'pending')
     `;
     await db.query(query, [
       postId,
       parentId || 0,
-      author_name,
+      author,
       author_email,
       content,
     ]);

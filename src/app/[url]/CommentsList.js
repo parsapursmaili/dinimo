@@ -8,7 +8,7 @@ import CommentForm from "./CommentForm";
 function Comment({ comment, postInfo, parentAuthorName }) {
   const [showReplyForm, setShowReplyForm] = useState(false);
 
-  const commentDate = new Date(comment.created_at).toLocaleDateString("fa-IR", {
+  const commentDate = new Date(comment.date).toLocaleDateString("fa-IR", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -19,7 +19,7 @@ function Comment({ comment, postInfo, parentAuthorName }) {
       {/* Avatar */}
       <div className="flex-shrink-0 mt-2">
         <div className="w-12 h-12 bg-gradient-to-br from-primary/50 to-accent/50 rounded-full flex items-center justify-center text-background font-bold text-xl shadow-md ring-2 ring-primary/30 transition-transform duration-300 group-hover:scale-110">
-          {comment.author_name.charAt(0)}
+          {comment.author.charAt(0)}
         </div>
       </div>
 
@@ -40,7 +40,7 @@ function Comment({ comment, postInfo, parentAuthorName }) {
                 </div>
               )}
               <span className="font-extrabold text-lg text-primary">
-                {comment.author_name}
+                {comment.author}
               </span>
             </div>
             <span className="text-xs  text-foreground/60 self-end sm:self-center">
@@ -73,7 +73,7 @@ function Comment({ comment, postInfo, parentAuthorName }) {
               postId={postInfo.postId}
               parentId={comment.id}
               postUrl={postInfo.postUrl}
-              replyingTo={comment.author_name}
+              replyingTo={comment.author}
               onCommentSubmitted={() => setShowReplyForm(false)}
             />
           </div>
@@ -87,7 +87,7 @@ function Comment({ comment, postInfo, parentAuthorName }) {
                 key={reply.id}
                 comment={reply}
                 postInfo={postInfo}
-                parentAuthorName={comment.author_name}
+                parentAuthorName={comment.author}
               />
             ))}
           </div>

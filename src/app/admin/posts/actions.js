@@ -71,7 +71,7 @@ export async function getPostsAction(queryString) {
     SELECT p.*,
            GROUP_CONCAT(DISTINCT cat.id, ':', cat.name SEPARATOR ';') as categories,
            GROUP_CONCAT(DISTINCT tag.id, ':', tag.name SEPARATOR ';') as tags,
-           (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND status = 'approved') as comment_count
+           (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND status = 'publish') as comment_count
     FROM posts p
     LEFT JOIN post_term pt_cat ON p.id = pt_cat.object_id
     LEFT JOIN terms cat ON pt_cat.term_taxonomy_id = cat.id AND cat.taxonomy = 'category'
