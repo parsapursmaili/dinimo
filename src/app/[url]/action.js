@@ -1,24 +1,20 @@
 "use server";
 
 import { db } from "@/app/lib/db/mysql";
-import { unstable_noStore as noStore } from "next/cache";
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache"; // جایگزین revalidatePath
+import { headers } from "next/headers"; // برای خواندن IP و User-Agent
+import { isAuthenticated } from "@/app/actions/auth";
 
 /**
- * دریافت اطلاعات یک پست، دسته‌بندی‌ها و تگ‌های آن بر اساس URL
+ * دریافت اطلاعات یک پست، دسته‌بندی‌ها و تگ‌های آن بر اساس URL.
+ * این تابع به صورت خودکار توسط Next.js کش می‌شود.
  */
 export async function getPostByUrl(url) {
-  noStore(); // جلوگیری از کش شدن برای آپدیت بازدید
   try {
     const query = `
       SELECT 
-        p.id, 
-        p.title, 
-        p.description, 
-        p.content, 
-        p.thumbnail, 
-        p.date, 
-        p.view,
+        p.id, p.title, p.description, p.content, 
+        p.thumbnail, p.date, p.view,
         (SELECT GROUP_CONCAT(t.name SEPARATOR ', ') 
          FROM terms t
          JOIN post_term pt ON t.id = pt.term_taxonomy_id
@@ -36,26 +32,55 @@ export async function getPostByUrl(url) {
     if (!rows || rows.length === 0) {
       return null;
     }
-
-    const post = rows[0];
-    // افزایش تعداد بازدید
-    await db.query("UPDATE posts SET view = view + 1 WHERE id = ?", [post.id]);
-    return { ...post, view: post.view + 1 };
+    return rows[0];
   } catch (error) {
     console.error("Database Error (getPostByUrl):", error);
     throw new Error("Failed to fetch post.");
   }
 }
 
+/**
+ * Server Action برای افزایش بازدید (هم کلی و هم روزانه).
+ * این تابع از سمت کلاینت فراخوانی می‌شود و بازدید کاربران لاگین کرده را نمی‌شمارد.
+ */
+export async function incrementViewCount(postId) {
+  try {
+    const isUserAuthenticated = await isAuthenticated();
+    if (isUserAuthenticated) {
+      // اگر کاربر لاگین است، بازدید را نشمار و بدون خطا خارج شو
+      return;
+    }
+
+    const updateTotalViewQuery =
+      "UPDATE posts SET view = view + 1 WHERE id = ?";
+    const updateDailyViewQuery = `
+      INSERT INTO daily_post_views (post_id, view_date, view_count)
+      VALUES (?, CURDATE(), 1)
+      ON DUPLICATE KEY UPDATE view_count = view_count + 1
+    `;
+
+    // اجرای همزمان هر دو کوئری برای بهینگی
+    await Promise.all([
+      db.query(updateTotalViewQuery, [postId]),
+      db.query(updateDailyViewQuery, [postId]),
+    ]);
+  } catch (error) {
+    console.error("Database Error (incrementViewCount):", error);
+  }
+}
+
+/**
+ * دریافت کامنت‌های یک پست.
+ * این تابع نیز به صورت خودکار توسط Next.js کش می‌شود.
+ */
 export async function getComments(postId) {
-  noStore();
   try {
     const query = `
       SELECT id, parent_id, author, date, content
       FROM comments
-      WHERE post_id = ? AND status = 'publish'
+      WHERE post_ID = ? AND status = 'publish'
       ORDER BY date ASC
-    `; // مرتب‌سازی بر اساس صعودی برای ساختاردهی صحیح
+    `;
     const [comments] = await db.query(query, [postId]);
 
     if (!comments || comments.length === 0) {
@@ -63,23 +88,19 @@ export async function getComments(postId) {
     }
 
     const commentsById = {};
-    // ابتدا همه کامنت‌ها را در یک نقشه (Map) قرار می‌دهیم و یک آرایه خالی برای پاسخ‌ها ایجاد می‌کنیم
     comments.forEach((comment) => {
       commentsById[comment.id] = { ...comment, replies: [] };
     });
 
     const nestedComments = [];
-    // سپس، هر کامنت را به والد مربوطه‌اش متصل می‌کنیم
     comments.forEach((comment) => {
       if (comment.parent_id && commentsById[comment.parent_id]) {
         commentsById[comment.parent_id].replies.push(commentsById[comment.id]);
       } else {
-        // اگر کامنت والد نداشت (parent_id = 0)، آن را به عنوان کامنت ریشه در نظر می‌گیریم
         nestedComments.push(commentsById[comment.id]);
       }
     });
 
-    // برای نمایش کامنت‌های جدیدتر در بالا، لیست نهایی را معکوس می‌کنیم
     return nestedComments.reverse();
   } catch (error) {
     console.error("Database Error (getComments):", error);
@@ -88,7 +109,7 @@ export async function getComments(postId) {
 }
 
 /**
- * ثبت یک کامنت جدید (Server Action)
+ * ثبت یک کامنت جدید (Server Action) - نسخه پیشرفته با ثبت IP و User-Agent
  */
 export async function addComment(previousState, formData) {
   const { postId, parentId, author, content, author_email, postUrl } =
@@ -102,20 +123,33 @@ export async function addComment(previousState, formData) {
   }
 
   try {
+    // 1. دریافت IP و User Agent از هدرهای درخواست
+    const headersList = headers();
+    const userAgent = headersList.get("user-agent") || "Not Found";
+    // این روش برای پیدا کردن IP واقعی کاربر پشت پروکسی (مانند Vercel) بهتر عمل می‌کند
+    const ip =
+      headersList.get("x-forwarded-for") ??
+      headersList.get("x-real-ip") ??
+      "Not Found";
+
+    // 2. کوئری INSERT با فیلدهای جدید author_IP و user_agent
     const query = `
-      INSERT INTO comments (post_id, parent_id, author, author_email, content, date, status)
-      VALUES (?, ?, ?, ?, ?, NOW(), 'pending')
+      INSERT INTO comments (post_ID, parent_id, author, author_email, author_IP, content, date, user_agent, status)
+      VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, 'pending')
     `;
     await db.query(query, [
       postId,
       parentId || 0,
       author,
       author_email,
+      ip, // مقدار IP
       content,
+      userAgent, // مقدار User Agent
     ]);
 
-    // کش صفحه را پاک می‌کنیم تا کامنت جدید (پس از تایید ادمین) نمایش داده شود
-    revalidatePath(`/blog/${postUrl}`);
+    // 3. استفاده از revalidateTag برای نامعتبر کردن کش مربوط به این پست
+    // این روش مدرن و توصیه شده در Next.js 15 است.
+    revalidateTag(`post:${postUrl}`);
 
     return {
       success: true,

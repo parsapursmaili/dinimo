@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/app/lib/db/mysql";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache"; // revalidateTag را اضافه کنید
 
 /**
  * اطلاعات کامل یک پست را بر اساس شناسه آن باز می‌گرداند.
@@ -71,10 +71,9 @@ export async function getAllTags() {
 }
 
 /**
- * یک پست موجود را در دیتابیس به‌روزرسانی می‌کند.
+ * یک پست موجود را در دیتابیس به‌روزرسانی می‌کند و کش‌های مربوطه را پاک می‌کند.
  */
 export async function updatePostAction(postId, formData) {
-  // ۱. فیلد excerpt از اینجا حذف شده است تا در کوئری استفاده نشود.
   const { title, content, status, slug, featured_image, categories, tags } =
     formData;
 
@@ -83,9 +82,14 @@ export async function updatePostAction(postId, formData) {
   }
 
   try {
+    // ابتدا URL فعلی پست را برای revalidate کردن دریافت می‌کنیم
+    const [[oldPost]] = await db.query("SELECT url FROM posts WHERE id = ?", [
+      postId,
+    ]);
+    const oldUrl = oldPost?.url;
+
     await db.query("START TRANSACTION");
 
-    // ۲. کوئری UPDATE نهایی و صحیح بدون ستون excerpt
     await db.query(
       `UPDATE posts SET
                 title = ?,
@@ -110,8 +114,16 @@ export async function updatePostAction(postId, formData) {
 
     await db.query("COMMIT");
 
+    // Revalidate کردن صفحات ادمین
     revalidatePath("/admin/posts");
     revalidatePath(`/admin/posts/edit/${postId}`);
+
+    // Revalidate کردن تگ مربوط به صفحه عمومی پست
+    // اگر URL تغییر کرده باشد، هم URL قدیمی و هم جدید را revalidate می‌کنیم
+    if (oldUrl) {
+      revalidateTag(`post:${oldUrl}`);
+    }
+    revalidateTag(`post:${slug}`);
 
     return { success: true, message: "نوشته با موفقیت به‌روزرسانی شد." };
   } catch (error) {

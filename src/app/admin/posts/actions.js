@@ -1,16 +1,33 @@
 "use server";
 
 import { db } from "@/app/lib/db/mysql";
+import { revalidatePath } from "next/cache";
+
+/**
+ * یک تابع کمکی برای اجرای کوئری‌ها در یک تراکنش دیتابیس.
+ * این تابع تضمین می‌کند که یا تمام عملیات با موفقیت انجام می‌شوند (COMMIT)
+ * یا در صورت بروز خطا، هیچ‌کدام انجام نمی‌شوند (ROLLBACK).
+ * @param {Function} callback - یک تابع async که شامل کوئری‌های دیتابیس است.
+ */
+async function runInTransaction(callback) {
+  try {
+    await db.query("START TRANSACTION");
+    await callback();
+    await db.query("COMMIT");
+  } catch (error) {
+    await db.query("ROLLBACK");
+    console.error("DATABASE TRANSACTION FAILED:", error);
+    // بازگرداندن یک آبجکت خطا برای نمایش به کاربر
+    return { success: false, error: "عملیات دیتابیس با خطا مواجه شد." };
+  }
+}
 
 /**
  * این یک Server Action است. از سمت کلاینت فراخوانی می‌شود، اما به صورت امن در سرور اجرا می‌شود.
  * این تابع تمام منطق دیتابیس را بر عهده دارد.
  */
 export async function getPostsAction(queryString) {
-  // ما رشته کوئری را از کلاینت می‌گیریم و به یک آبجکت استاندارد تبدیل می‌کنیم.
-  // این روش ۱۰۰٪ امن و بدون خطا است.
   const params = new URLSearchParams(queryString);
-
   const page = parseInt(params.get("page") || "1", 10);
   const limit = parseInt(params.get("limit") || "10", 10);
   const search = params.get("search") || "";
@@ -19,10 +36,6 @@ export async function getPostsAction(queryString) {
   const tag = params.get("tag") || "";
   const sort = params.get("sort") || "date";
   const order = params.get("order") || "DESC";
-
-  console.log(
-    `[SERVER ACTION LOG] Fetching data for: status='${status}', search='${search}'`
-  );
 
   const offset = (page - 1) * limit;
 
@@ -94,16 +107,15 @@ export async function getPostsAction(queryString) {
       ),
     ]);
 
-    // ما داده‌ها را به صورت یک آبجکت JSON به کلاینت برمی‌گردانیم
     return { success: true, data: { posts, total, categories, tags } };
   } catch (error) {
     console.error("DATABASE ERROR in getPostsAction:", error);
     return { success: false, error: "خطا در واکشی اطلاعات از دیتابیس." };
   }
 }
+
 /**
  * یک پست را بر اساس شناسه حذف می‌کند.
- * @param {string} id - شناسه پست.
  */
 export async function deletePost(id) {
   const result = await runInTransaction(async () => {
@@ -111,15 +123,14 @@ export async function deletePost(id) {
     await db.query("DELETE FROM posts WHERE id = ?", [id]);
   });
 
-  if (result !== undefined) return result; // در صورت بروز خطا در تراکنش
+  if (result) return result; // در صورت بروز خطا در تراکنش، آن را برگردان
 
-  revalidatePath("/admin/posts"); // کش این صفحه را برای نمایش اطلاعات جدید، پاک می‌کند
+  revalidatePath("/admin/posts");
   return { success: true };
 }
 
 /**
  * چندین پست را به صورت دسته‌جمعی حذف می‌کند.
- * @param {string[]} ids - آرایه‌ای از شناسه‌های پست‌ها.
  */
 export async function bulkDeletePosts(ids) {
   if (!ids || ids.length === 0) {
@@ -135,7 +146,7 @@ export async function bulkDeletePosts(ids) {
     await db.query(`DELETE FROM posts WHERE id IN (${placeholders})`, ids);
   });
 
-  if (result !== undefined) return result;
+  if (result) return result;
 
   revalidatePath("/admin/posts");
   return { success: true };
@@ -143,8 +154,6 @@ export async function bulkDeletePosts(ids) {
 
 /**
  * اطلاعات یک پست را با ویرایش سریع به‌روزرسانی می‌کند.
- * @param {string} id - شناسه پست.
- * @param {{title: string, url: string, status: string, categories: string[], tags: string[]}} data - داده‌های جدید.
  */
 export async function quickEditPost(id, data) {
   const { title, url, status, categories = [], tags = [] } = data;
@@ -157,19 +166,17 @@ export async function quickEditPost(id, data) {
   }
 
   const result = await runInTransaction(async () => {
-    // 1. آپدیت جدول اصلی پست
     await db.query(
       "UPDATE posts SET title = ?, url = ?, status = ? WHERE id = ?",
       [title, url, status, id]
     );
 
-    // 2. حذف تمام دسته‌ها و تگ‌های قبلی
     await db.query("DELETE FROM post_term WHERE object_id = ?", [id]);
 
-    // 3. افزودن دسته‌ها و تگ‌های جدید
     const termIds = [...categories, ...tags]
       .map((termId) => parseInt(termId, 10))
       .filter(Boolean);
+
     if (termIds.length > 0) {
       const termValues = termIds.map((termId) => [id, termId]);
       await db.query(
@@ -179,7 +186,7 @@ export async function quickEditPost(id, data) {
     }
   });
 
-  if (result !== undefined) return result;
+  if (result) return result;
 
   revalidatePath("/admin/posts");
   return { success: true };

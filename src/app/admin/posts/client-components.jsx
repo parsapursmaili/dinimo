@@ -479,7 +479,7 @@ export default function PostManagementClient() {
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold">مدیریت پست‌ها</h1>
         <Link
-          href="/admin/posts/edit/0"
+          href="/admin/posts/edit/"
           className="button-primary flex items-center gap-2"
         >
           <PlusCircle size={20} /> افزودن پست جدید
